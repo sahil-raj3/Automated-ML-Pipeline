@@ -24,12 +24,6 @@ In this Project we used [EvalML](https://evalml.alteryx.com/en/v0.11.2/start.htm
 
 Streamlit library is used to design the user interface for this project.
 
-## Preview
-![](img/first.png)
-
-![](img/second.png)
-
-![](img/url.png)
 
 ## How to Run?
 First of all clone or download this code into your local. ```Don`t know how? Just checkout the main branch readme file.```
