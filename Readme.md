@@ -36,7 +36,7 @@ Once you have created your environment you need to add dependencies required for
 
 Install them by running command: ```pip install -r requirements.txt```
 
-Done with this now run you project by : ```streamlit run automated_pipeline.py```
+Done with this now run you project by : ```streamlit run app.py```
 
 **********
 # Thankyou
