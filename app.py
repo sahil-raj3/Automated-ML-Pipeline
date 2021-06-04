@@ -54,7 +54,7 @@ def url_data():
 # display result
     #st.write(final_result)
     
-    results=scraper.get_result_similar("https://trak.in/india-startup-funding-investment-2015/",grouped=True,keep_order=True)
+    results=scraper.get_result_similar(url,grouped=True,keep_order=True)
     result={}
     for key,value in results.items():
         if value not in result.values():
@@ -122,7 +122,7 @@ def url_data():
 
         tunned_rankings=automl_tunned.rankings
 
-        automl_tunned.describe_pipeline(automl_tunned.rankings.iloc[0]["id"])
+        tunned_description=automl_tunned.describe_pipeline(automl_tunned.rankings.iloc[0]["id"],return_dict=True)
 
         tunned_pipeline= automl_tunned.best_pipeline
 
@@ -146,7 +146,7 @@ def url_data():
 
         tunned_rankings=automl_tunned.rankings
 
-        automl_tunned.describe_pipeline(automl_tunned.rankings.iloc[0]["id"])
+        tunned_description=automl_tunned.describe_pipeline(automl_tunned.rankings.iloc[0]["id"],return_dict=True)
 
         tunned_pipeline= automl_tunned.best_pipeline
 
@@ -169,7 +169,7 @@ def url_data():
 
                 tunned_rankings=automl_tunned.rankings
 
-                automl_tunned.describe_pipeline(automl_tunned.rankings.iloc[0]["id"])
+                tunned_description=automl_tunned.describe_pipeline(automl_tunned.rankings.iloc[0]["id"],return_dict=True)
 
                 tunned_pipeline= automl_tunned.best_pipeline
 
@@ -178,6 +178,17 @@ def url_data():
                 tunned_pipeline.fit(x_train,y_train)
                     
                 pred=tunned_pipeline.predict(x_test).to_series()
+                
+    file=open("model_details.txt","w")
+    str_dict=repr(tunned_description)
+    file.write(str_dict)
+    file.close()
+    def get_binary_file_downloader_html(bin_file, file_label='File'):
+            with open(bin_file, 'rb') as f:
+                data = f.read()
+                bin_str = base64.b64encode(data).decode()
+                href = f'<a href="data:application/octet-stream;base64,{bin_str}" download="{os.path.basename(bin_file)}">Click Here To Download {file_label}</a>'
+                return href                
     col1,col2,col3=st.beta_columns([1,1,1])        
     if col2.button("Predict Results",key="output",help="shows results"):
             st.spinner()
@@ -190,11 +201,12 @@ def url_data():
     col11,col12=st.beta_columns([3,1])
     with col11:
         with st.beta_expander("Compare Models"):
-                st.write(rank)
+                st.write(tunned_rankings)
         
     with col12:
         with st.beta_expander("Best Pipeline"):
-                st.success(best_pipeline)
+                st.success(tunned_pipeline)
+                st.markdown(get_binary_file_downloader_html('model_details.txt', 'Pipeline Details'), unsafe_allow_html=True)
                 
         
     
@@ -207,7 +219,7 @@ def url_data():
 def file_data():
 
 
-    uploaded_file = st.file_uploader("Upload Files",type=['csv','xls','xlxs','json','png','jpeg'])
+    uploaded_file = st.file_uploader("Upload Files",type=['csv','xls','xlxs'])
 # =============================================================================
 # if uploaded_file is not None:
 #     file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
@@ -272,16 +284,7 @@ def file_data():
         
         description=automl.describe_pipeline(automl.rankings.iloc[0]["id"],return_dict=True)
         
-        file=open("pipeline_details.txt","w")
-        str_dict=repr(description)
-        file.write(str_dict)
-        file.close()
-        def get_binary_file_downloader_html(bin_file, file_label='File'):
-            with open(bin_file, 'rb') as f:
-                data = f.read()
-                bin_str = base64.b64encode(data).decode()
-                href = f'<a href="data:application/octet-stream;base64,{bin_str}" download="{os.path.basename(bin_file)}">Click Here To Download {file_label}</a>'
-                return href
+
 
         
 
@@ -304,7 +307,7 @@ def file_data():
 
             tunned_rankings=automl_tunned.rankings
 
-            automl_tunned.describe_pipeline(automl_tunned.rankings.iloc[0]["id"])
+            tunned_description=automl_tunned.describe_pipeline(automl_tunned.rankings.iloc[0]["id"],return_dict=True)
 
             tunned_pipeline= automl_tunned.best_pipeline
 
@@ -328,7 +331,7 @@ def file_data():
 
                 tunned_rankings=automl_tunned.rankings
 
-                automl_tunned.describe_pipeline(automl_tunned.rankings.iloc[0]["id"])
+                tunned_description=automl_tunned.describe_pipeline(automl_tunned.rankings.iloc[0]["id"],return_dict=True)
 
                 tunned_pipeline= automl_tunned.best_pipeline
 
@@ -351,7 +354,7 @@ def file_data():
 
                 tunned_rankings=automl_tunned.rankings
 
-                automl_tunned.describe_pipeline(automl_tunned.rankings.iloc[0]["id"])
+                tunned_description=automl_tunned.describe_pipeline(automl_tunned.rankings.iloc[0]["id"],return_dict=True)
 
                 tunned_pipeline= automl_tunned.best_pipeline
 
@@ -364,6 +367,17 @@ def file_data():
         col1,col2,col3=st.beta_columns([1,1,1])
 
         
+        file=open("model_details.txt","w")
+        str_dict=repr(tunned_description)
+        file.write(str_dict)
+        file.close()
+        def get_binary_file_downloader_html(bin_file, file_label='File'):
+            with open(bin_file, 'rb') as f:
+                data = f.read()
+                bin_str = base64.b64encode(data).decode()
+                href = f'<a href="data:application/octet-stream;base64,{bin_str}" download="{os.path.basename(bin_file)}">Click Here To Download {file_label}</a>'
+                return href
+        
         if col2.button("Predict Results",key="output",help="shows results"):
             st.spinner()
             with st.spinner(text='In progress'):
@@ -375,11 +389,14 @@ def file_data():
             col11,col12=st.beta_columns([3,1])
             with col11:
                 with st.beta_expander("Compare Models"):
-                    st.write(rank)
+                    st.write(tunned_rankings)
             with col12:
                 with st.beta_expander("Pipeline Details"):
-                    st.success(best_pipeline)
-                    st.markdown(get_binary_file_downloader_html('pipeline_details.txt', 'Pipeline Details'), unsafe_allow_html=True)
+                    st.success(tunned_pipeline)
+                    st.markdown(get_binary_file_downloader_html('model_details.txt', 'Pipeline Details'), unsafe_allow_html=True)
+
+
+                    
 # =============================================================================
 #         with col13:
 #             with st.beta_expander("Model Deatils"):
