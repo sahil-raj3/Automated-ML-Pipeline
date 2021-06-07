@@ -12,7 +12,8 @@ import pandas as pd
 from evalml.automl import AutoMLSearch
 import time
 from autoscraper import AutoScraper
-
+from evalml.objectives import get_core_objectives
+from evalml.problem_types import ProblemTypes
 
 
 
@@ -29,7 +30,18 @@ def about():
 Hyperparameter optimization and algorithm configuration provide methods to automate the tedious, time-consuming and error-prone process of tuning hyperparameters to new tasks at hand and provide software packages implement the suggestion from Bergstra et al.’s Making a science of model search. '''
 #Autoscapper
 #url data input method
+def objectives():
+    binary_obj=[]
+    for objective in get_core_objectives(ProblemTypes.BINARY):
+        binary_obj.append(objective.name)
+    multiclass_obj=[]
+    for objective in get_core_objectives(ProblemTypes.MULTICLASS):
+            multiclass_obj.append(objective.name)
+    regression_obj=[]            
+    for objective in get_core_objectives(ProblemTypes.REGRESSION):
+        regression_obj.append(objective.name)
 
+        
 def url_data():
     about()
     st.info("This feature has limited functionality")
@@ -39,7 +51,7 @@ def url_data():
         st.stop()
     
     #getting data Column names as user input
-    column_name=st.text_input("enter candidadte",key="value")
+    column_name=st.text_input("enter candidadte column Name",key="value")
     value_list=column_name.split(",")
     
     #getting data example for refferances
@@ -52,7 +64,7 @@ def url_data():
 # feeding for scraping
     final_result = scraper.build(url,items_list)
 # display result
-    #st.write(final_result)
+    
     
     results=scraper.get_result_similar(url,grouped=True,keep_order=True)
     result={}
@@ -62,58 +74,52 @@ def url_data():
             
     orient_df=pd.DataFrame.from_dict(result,orient="index")
     df=orient_df.transpose()
-    st.write(df)
+    
     df.columns=value_list
     df.fillna(value=pd.np.nan,inplace=True)
     st.write(df)
     
     cols=df.columns.tolist()
     col1,col2=st.beta_columns(2)
+ 
     target=col1.selectbox("Select Target", cols,key="target")
-    x=df.drop(columns=target)
-    y=df[target]
+
 
     
     typelist=['binary','multiclass','regression','time series regression','time series multiclass','time series binary']
-    p_type=col2.selectbox("Select problem type",typelist,key="p_type")
-        
-
+    p_type=col2.selectbox("Select problem type",typelist,key="p_type")     
+    st.write("hey")
+    x=df.drop(columns=target)
+    y=df[target]
     x_train,x_test,y_train,y_test=evalml.preprocessing.split_data(x,y,problem_type=p_type)
 
-    #its training time
-# =============================================================================
-#             st.spinner()
-#             with st.spinner(text='In progress'):
-#                 st.info("Wait while we are selecting a best algoritham for your problem..Hold your breath.")
-#                 time.sleep(20)
-# =============================================================================
     automl = AutoMLSearch(X_train=x_train, y_train=y_train, problem_type=p_type)
     automl.search()
 
 
     rank=automl.rankings
-# to see the rankings
-# =============================================================================
-# if st.button("Check rankings",key="rank"):
-#     st.write(rank)
-# =============================================================================
 
 #checking best pipeline     ###############################################################
 
     best_pipeline=automl.best_pipeline
     description=automl.describe_pipeline(automl.rankings.iloc[0]["id"])
 
+### OPtimize the code 
+
 
 ### Evaluate on hold out data
     problem_list=['binary','time series binary']
     problem_list2=['multiclass','time series multiclass']
-            
+
+    cola,col_b,colc=st.beta_columns(3)
+    
     if p_type in problem_list:
+        objective=col_b.selectbox("select objective",objectives().binary_obj,key="objective selector")  
         best_pipeline.score(x_test, y_test, objectives=["auc","f1","Precision","Recall"])
 
         automl_tunned = AutoMLSearch(X_train=x_train, y_train=y_train,
                                          problem_type=p_type,
-                                         objective='auc',
+                                         objective=objective,
                                          additional_objectives=['f1', 'precision'],
                                          max_batches=1,
                                          optimize_thresholds=True)
@@ -126,18 +132,19 @@ def url_data():
 
         tunned_pipeline= automl_tunned.best_pipeline
 
-        tunned_pipeline.score(x_test, y_test,  objectives=["auc"])
+        tunned_pipeline.score(x_test, y_test,  objectives=[objective])
 
         pred=tunned_pipeline.predict_proba(x_test).to_dataframe()
 
 
 # for multiclass type problem
     elif p_type in problem_list2:
+        objective=col_b.selectbox("select objective",objectives().multiclass_obj,key="objective selector") 
         best_pipeline.score(x_test, y_test, objectives=["log loss multiclass","MCC multiclass","accuracy multiclass"])
 
         automl_tunned = AutoMLSearch(X_train=x_train, y_train=y_train,
                                          problem_type=p_type,
-                                         objective="log loss multiclass",
+                                         objective=objective,
                                          additional_objectives=['MCC multiclass', 'accuracy multiclass'],
                                          max_batches=1,
                                          optimize_thresholds=True)
@@ -150,17 +157,18 @@ def url_data():
 
         tunned_pipeline= automl_tunned.best_pipeline
 
-        tunned_pipeline.score(x_test, y_test,  objectives=["log loss multiclass"])
+        tunned_pipeline.score(x_test, y_test,  objectives=[objective])
 
         pred=tunned_pipeline.predict(x_test).to_series()
 
     
 # for regression type problems
     else:
+                objective=col_b.selectbox("select objective",objectives().regression_obj,key="objective selector") 
                 best_pipeline.score(x_test, y_test, objectives=["r2","MSE","MAE","Root Mean Squared Error"])
                 automl_tunned = AutoMLSearch(X_train=x_train, y_train=y_train,
                                          problem_type=p_type,
-                                         objective='r2',
+                                         objective=objective,
                                          additional_objectives=['Root Mean Squared Error', 'MSE','MAE'],
                                          max_batches=1,
                                          optimize_thresholds=True)
@@ -173,7 +181,7 @@ def url_data():
 
                 tunned_pipeline= automl_tunned.best_pipeline
 
-                tunned_pipeline.score(x_test, y_test,  objectives=["r2"])
+                tunned_pipeline.score(x_test, y_test,  objectives=[objective])
 
                 tunned_pipeline.fit(x_train,y_train)
                     
@@ -215,16 +223,11 @@ def url_data():
 
 # =============================================================================
 #direct file upload method
-    
+   
 def file_data():
 
-
+   
     uploaded_file = st.file_uploader("Upload Files",type=['csv','xls','xlxs'])
-# =============================================================================
-# if uploaded_file is not None:
-#     file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
-#     st.write(file_details)
-# =============================================================================
 
 #geeting the file type to read the file as a dataframe
 
@@ -236,10 +239,10 @@ def file_data():
         file_type=filename.split('.',2)
 
         if file_type[1]=='csv':
-            df=pd.read_csv(filename)
+            df=pd.read_csv(uploaded_file)
     
         elif file_type[1]=='xls' or 'xlsx':
-            df=pd.read_excel(filename)
+            df=pd.read_excel(uploaded_file)
             st.write(df.head())    
 #wait for json type in new update 
 
@@ -260,22 +263,11 @@ def file_data():
         x_train,x_test,y_train,y_test=evalml.preprocessing.split_data(x,y,problem_type=p_type)
 
     #its training time
-# =============================================================================
-#             st.spinner()
-#             with st.spinner(text='In progress'):
-#                 st.info("Wait while we are selecting a best algoritham for your problem..Hold your breath.")
-#                 time.sleep(20)
-# =============================================================================
         automl = AutoMLSearch(X_train=x_train, y_train=y_train, problem_type=p_type)
         automl.search()
 
 
         rank=automl.rankings
-# to see the rankings
-# =============================================================================
-# if st.button("Check rankings",key="rank"):
-#     st.write(rank)
-# =============================================================================
 
 #checking best pipeline     ###############################################################
 
@@ -292,13 +284,25 @@ def file_data():
 ### Evaluate on hold out data
         problem_list=['binary','time series binary']
         problem_list2=['multiclass','time series multiclass']
-            
+        
+        binary_obj=[]
+        for objective in get_core_objectives(ProblemTypes.BINARY):
+            binary_obj.append(objective.name)
+        multiclass_obj=[]
+        for objective in get_core_objectives(ProblemTypes.MULTICLASS):
+            multiclass_obj.append(objective.name)
+        regression_obj=[]            
+        for objective in get_core_objectives(ProblemTypes.REGRESSION):
+            regression_obj.append(objective.name)
+        cola,col_b,colc=st.beta_columns([1,3,1])
+        
         if p_type in problem_list:
+            objective=col_b.selectbox("select objective",binary_obj,key="objective selector") 
             best_pipeline.score(x_test, y_test, objectives=["auc","f1","Precision","Recall"])
 
             automl_tunned = AutoMLSearch(X_train=x_train, y_train=y_train,
                                          problem_type=p_type,
-                                         objective='auc',
+                                         objective=objective,
                                          additional_objectives=['f1', 'precision'],
                                          max_batches=1,
                                          optimize_thresholds=True)
@@ -311,18 +315,19 @@ def file_data():
 
             tunned_pipeline= automl_tunned.best_pipeline
 
-            tunned_pipeline.score(x_test, y_test,  objectives=["auc"])
+            tunned_pipeline.score(x_test, y_test,  objectives=[objective])
 
             pred=tunned_pipeline.predict_proba(x_test).to_dataframe()
 
 
 # for multiclass type problem
         elif p_type in problem_list2:
+                objective=col_b.selectbox("select objective",multiclass_obj,key="objective selector") 
                 best_pipeline.score(x_test, y_test, objectives=["log loss multiclass","MCC multiclass","accuracy multiclass"])
 
                 automl_tunned = AutoMLSearch(X_train=x_train, y_train=y_train,
                                          problem_type=p_type,
-                                         objective="log loss multiclass",
+                                         objective=objective,
                                          additional_objectives=['MCC multiclass', 'accuracy multiclass'],
                                          max_batches=1,
                                          optimize_thresholds=True)
@@ -335,17 +340,18 @@ def file_data():
 
                 tunned_pipeline= automl_tunned.best_pipeline
 
-                tunned_pipeline.score(x_test, y_test,  objectives=["log loss multiclass"])
+                tunned_pipeline.score(x_test, y_test,  objectives=[objective])
 
                 pred=tunned_pipeline.predict(x_test).to_series()
 
     
 # for regression type problems
         else:
+                objective=col_b.selectbox("select objective",regression_obj,key="objective selector") 
                 best_pipeline.score(x_test, y_test, objectives=["r2","MSE","MAE","Root Mean Squared Error"])
                 automl_tunned = AutoMLSearch(X_train=x_train, y_train=y_train,
                                          problem_type=p_type,
-                                         objective='r2',
+                                         objective=objective,
                                          additional_objectives=['Root Mean Squared Error', 'MSE','MAE'],
                                          max_batches=1,
                                          optimize_thresholds=True)
@@ -358,13 +364,13 @@ def file_data():
 
                 tunned_pipeline= automl_tunned.best_pipeline
 
-                tunned_pipeline.score(x_test, y_test,  objectives=["r2"])
+                tunned_pipeline.score(x_test, y_test,  objectives=[objective])
 
                 tunned_pipeline.fit(x_train,y_train)
                     
                 pred=tunned_pipeline.predict(x_test).to_series()
                 
-        col1,col2,col3=st.beta_columns([1,1,1])
+        col1,col2,col3=st.beta_columns([1,3,1])
 
         
         file=open("model_details.txt","w")
@@ -394,16 +400,6 @@ def file_data():
                 with st.beta_expander("Pipeline Details"):
                     st.success(tunned_pipeline)
                     st.markdown(get_binary_file_downloader_html('model_details.txt', 'Pipeline Details'), unsafe_allow_html=True)
-
-
-                    
-# =============================================================================
-#         with col13:
-#             with st.beta_expander("Model Deatils"):
-#                 st.success(description)                
-# =============================================================================
-        
-        
  
 # =============================================================================
 def main():
